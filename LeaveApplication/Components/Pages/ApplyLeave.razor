@@ -1,0 +1,112 @@
+﻿@page "/apply-leave"
+@inject HttpClient Http
+@inject ProtectedSessionStorage SessionStorage
+@inject AuthService AuthService
+@rendermode InteractiveServer
+<h3>Apply for Leave</h3>
+<small>Currently the Application is only set for two users:Admin and Employee. </small>
+<hr/>
+@if (!string.IsNullOrEmpty(Message))
+{
+    <div class="alert alert-success" id="messageBox">@Message</div>
+    <script>
+        setTimeout(() => {
+            var messageBox = document.getElementById("messageBox");
+            if (messageBox) {
+                messageBox.style.display = "none";
+            }
+        }, 1500);
+    </script>
+}
+
+
+<div style="display:flex;column-gap:6px;align-items:center">
+    <div class="col-lg-5 col-sm-5">
+        <label>Start Date:</label>
+        <input type="date" class="form-control" @bind="StartDate" />
+    </div>
+    <div class="col-lg-5 col-sm-5">
+
+        <label>End Date:</label>
+        <input type="date" class="form-control" @bind="EndDate" />
+    </div>
+    <div class="col-lg-2 col-sm-2">
+        <button class="btn btn-primary mt-3" @onclick="ApplyForLeave">Submit</button>
+    </div>
+
+</div>
+Leave Requests
+@if (LeaveRequests == null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Start Date</th>
+                <th>End Date</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var leave in LeaveRequests)
+            {
+                <tr>
+                    <td>@leave.StartDate.ToShortDateString()</td>
+                    <td>@leave.EndDate.ToShortDateString()</td>
+                    <td>@leave.Status</td>
+                   
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+@code {
+    private List<LeaveRequest>? LeaveRequests;
+
+    private DateTime StartDate { get; set; } = DateTime.Today;
+    private DateTime EndDate { get; set; } = DateTime.Today;
+    private string Message = string.Empty;
+    private string Username = string.Empty;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            Username = await AuthService.GetUsernameAsync();
+            StateHasChanged(); // Force UI update
+        }
+    }
+    protected override async Task OnInitializedAsync()
+    {
+        Username = await AuthService.GetUsernameAsync();
+        LeaveRequests = await Http.GetFromJsonAsync<List<LeaveRequest>>("https://localhost:7256/api/Leave");
+        Console.Write(LeaveRequests);
+
+    }
+
+    public async Task ApplyForLeave()
+    {
+        try
+        {
+            var leave = new { EmployeeUsername = Username, StartDate, EndDate };
+            var response = await Http.PostAsJsonAsync("https://localhost:7256/api/Leave", leave);
+
+            if (response.IsSuccessStatusCode)
+            {
+                Message = "Leave request submitted successfully!";
+            }
+            else
+            {
+                Message = $"Failed to submit leave request. Error: {response.ReasonPhrase}";
+            }
+        }
+        catch (Exception ex)
+        {
+            Message = $"An error occurred: {ex.Message}";
+        }
+    }
+
+}

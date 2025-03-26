@@ -1,0 +1,57 @@
+﻿@page "/"
+@layout Layout.LoginLayout
+@inject UserService UserService
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+@inject ProtectedSessionStorage SessionStorage
+@inject AuthService Auth
+
+<h3 class="text-center mt-4">Login</h3>
+
+@if (!string.IsNullOrEmpty(ErrorMessage))
+{
+    <div class="alert alert-danger text-center">@ErrorMessage</div>
+}
+
+<div class="container d-flex justify-content-center">
+    <div class="card shadow p-4" style="width: 400px;">
+        <div class="mb-3">
+            <label class="form-label">Username</label>
+            <input type="text" class="form-control" @bind="Username" placeholder="Enter username" />
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Password</label>
+            <input type="password" class="form-control" @bind="Password" placeholder="Enter password" />
+        </div>
+
+        <button class="btn btn-primary w-100" @onclick="LoginUser">Login</button>
+    </div>
+</div>
+
+@code {
+    private string Username { get; set; } = string.Empty;
+    private string Password { get; set; } = string.Empty;
+    private string ErrorMessage { get; set; } = string.Empty;
+
+    private async Task LoginUser()
+    {
+        var user = await UserService.CheckLoginAsync(Username, Password);
+        await Auth.LoginAsync(Username);
+
+        if (user != null)
+        {
+
+          
+            
+            Navigation.NavigateTo("/Home", forceLoad: true); // Ensure a full page reload if needed
+
+           }
+            // Navigation.NavigateTo("/Home", forceLoad: true); // Ensure a full page reload if needed
+        
+        else
+        {
+            ErrorMessage = "Invalid username or password.";
+        }
+    }
+}

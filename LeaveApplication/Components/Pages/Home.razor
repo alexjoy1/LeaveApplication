@@ -1,0 +1,35 @@
+﻿@page "/Home"
+@inject AuthService AuthService
+@rendermode InteractiveServer
+
+<PageTitle>Home</PageTitle>
+
+<h1>Hello, @username!</h1>
+@if (username=="Admin")
+{
+    <NavLink href="approve-leave" class="btn btn-dark">
+        Leave Approval
+    </NavLink>
+}
+else
+{
+    <NavLink href="apply-leave" class="btn btn-dark">
+        Leave Request
+    </NavLink>
+}
+<br />
+Welcome to your new app.
+@code{
+    public string username{ get; set; }
+
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            username = await AuthService.GetUsernameAsync();
+            StateHasChanged(); // Force UI update
+        }
+    }
+
+}

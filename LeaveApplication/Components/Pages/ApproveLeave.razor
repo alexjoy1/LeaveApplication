@@ -1,0 +1,86 @@
+﻿@page "/approve-leave"
+@inject HttpClient Http
+@inject AuthService AuthService
+@rendermode InteractiveServer
+@inject NavigationManager Navigation
+
+<h3>Approve Leave Requests</h3>
+
+@if (LeaveRequests == null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Employee</th>
+                <th>Start Date</th>
+                <th>End Date</th>
+                <th>Status</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var leave in LeaveRequests)
+            {
+                <tr>
+                    <td>@leave.EmployeeUsername</td>
+                    <td>@leave.StartDate.ToShortDateString()</td>
+                    <td>@leave.EndDate.ToShortDateString()</td>
+                    <td>@leave.Status</td>
+                    <td>
+                        @if (leave.Status == "Pending")
+                        {
+                            <button class="btn btn-success" @onclick="() => ApproveTheLeave(leave.Id)">Approve</button>
+                        }
+                        <button class="btn btn-danger" @onclick="() => DeleteLeave(leave.Id)">Delete</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<LeaveRequest>? LeaveRequests;
+    private string username;
+
+    protected override async Task OnInitializedAsync()
+    {
+        username = await AuthService.GetUsernameAsync();
+        Console.Write(username);
+
+        LeaveRequests = await Http.GetFromJsonAsync<List<LeaveRequest>>("https://localhost:7256/api/Leave");
+        Console.Write(LeaveRequests);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            username = await AuthService.GetUsernameAsync();
+            StateHasChanged();
+            if (username != "Admin")
+            {
+                Navigation.NavigateTo("/", forceLoad: true);
+            }
+        }
+    }
+
+    public async Task ApproveTheLeave(int id)
+    {
+        await Http.PutAsync($"https://localhost:7256/api/Leave/{id}", null);
+        LeaveRequests.First(l => l.Id == id).Status = "Approved";
+    }
+
+    public async Task DeleteLeave(int id)
+    {
+        var response = await Http.DeleteAsync($"https://localhost:7256/api/Leave/{id}");
+        if (response.IsSuccessStatusCode)
+        {
+            LeaveRequests.RemoveAll(l => l.Id == id);
+        }
+    }
+}
